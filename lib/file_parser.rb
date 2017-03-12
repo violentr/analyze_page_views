@@ -1,51 +1,58 @@
 #!/usr/bin/env ruby
+require 'byebug'
 
 class FileParser
   attr_reader :file
+  attr_accessor :get_views, :get_uniq_views
 
   def initialize
     @file = ARGV.first
-    @uniq_views = []
+    @get_views = {}
+    @get_uniq_views = {}
   end
 
   def process
     return StandardError.new.error unless file_loaded?
-    data = get_page_views(split_in_categories(file_contents))
-    print(descending_order(data))
+    get_page_views!(split_in_categories(file_contents))
+    print(desc_order(get_views))
+    print_uniq(desc_order(get_uniq_views))
   end
 
   def split_in_categories(contents)
     contents.each_with_object([]) do |line, array|
       key, value = line.strip.split(/ /)
       array << [key, value]
-    end
+    end.group_by {|url, ip| url}
   end
 
-  def get_page_views(collection)
+  def get_page_views!(collection)
+    black_list = collection.keys
     collection.each_with_object({}) do |item, hash|
-      key, value = item
-      hash[key] << value if hash.has_key?(key)
-      hash[key] ||= [value]
+      url, data = item
+      data.flatten!
+      data.delete_if {|name| black_list.include?(name)}
+      hash[url] = data
+      get_views[url] = data.size
+      get_uniq_views[url] = data.uniq.size
     end
   end
 
-  def print(output)
-    output.each do |url, count|
-      view = count == 1 ? "unique view" : "views"
-      uniq_views << {url: url, views: count} if count == 1
-      puts "#{url} - #{count} #{view}"
+  def print(collection)
+    collection.each do |url, ips|
+      puts "#{url} - #{ips} view"
     end
+    puts "===================="
   end
 
-  def descending_order(data)
-    data = data.each do |url, ips|
-      data[url] = ips.size
-    end.sort_by {|key, value| value}.reverse!
-    data.to_h
+  def desc_order(data)
+    data.sort_by {|key, value| value}.reverse!
   end
 
-  def uniq_views
-    @uniq_views
+  def print_uniq(collection)
+     collection.each do |item|
+       url, ips = item
+       puts "#{url} has #{ips} uniq views"
+     end
   end
 
   def file_loaded?

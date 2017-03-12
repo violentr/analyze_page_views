@@ -11,18 +11,13 @@ RSpec.describe FileParser do
     expect(file_parser.file_loaded?).to be true
   end
 
-  it 'should have default_file_name to parse' do
-    output = {"/contact/"=>155, "/products/3"=>149, "/home"=>143, "products/1"=>142, "/about"=>141, "/index"=>141, "/products/2"=>129}
-    expect(file_parser.process).to eq output
-  end
-
   it 'should have file contents' do
-    expect(formated_file_contents).to include(["/home", "225.183.113.22"])
-    expect(formated_file_contents).to include(["/contact/", "245.141.61.189"])
+    expect(formated_file_contents["/home"]).to include(["/home", "225.183.113.22"])
+    expect(formated_file_contents["/contact/"]).to include(["/contact/", "245.141.61.189"])
   end
 
   it 'show array of ips for "/home" page' do
-    output = file_parser.get_page_views(formated_file_contents)
+    output = file_parser.get_page_views!(formated_file_contents)
     expect(output).to be_a(Hash)
     expect(output.keys).to include("/home")
     expect(output["/home"]).to be_a(Array)
@@ -32,11 +27,14 @@ RSpec.describe FileParser do
 
   it 'should be in descending order' do
     output = {"/contact/"=>155, "/products/3"=>149, "/home"=>143, "products/1"=>142, "/about"=>141, "/index"=>141, "/products/2"=>129}
-    data = file_parser.get_page_views(formated_file_contents)
-    expect(file_parser.descending_order(data)).to eq output
+    file_parser.process
+    expect(file_parser.get_views).to eq output
   end
-  it 'should have no uniq views' do
-    expect(file_parser.uniq_views.size).to eq 0
+
+  it 'should have uniq views for /home page' do
+    output = {"/contact/"=>20, "/products/2"=>20, "/home"=>20, "/products/3"=>20, "/about"=>20, "/index"=>20, "products/1"=>20}
+    file_parser.process
+    expect(file_parser.get_uniq_views).to eq output
   end
 end
 
